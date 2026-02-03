@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/common/app-sidebar";
+import MainChat from "./(pages)/chat/_components/main-chat";
+// import Footer from "@/components/common/footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,9 +29,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-light-nutral text-zinc-100`}
+        cz-shortcut-listen="true"
       >
-        {children}
+        <SidebarProvider>
+          <AppSidebar />
+          <main className="w-full pt-4 gap-3.5">
+            <div className="ps-3.5">{children}</div>
+          </main>
+        </SidebarProvider>
+        {/* <Footer /> */}
       </body>
     </html>
   );
