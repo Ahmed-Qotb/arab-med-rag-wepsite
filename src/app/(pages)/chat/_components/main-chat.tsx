@@ -65,7 +65,7 @@ export default function MainChat({ chatId }: chatIdParams) {
       <div className="h-full flex bg-[#3F424A] rounded-xl flex-col justify-between">
         {/* Messages */}
         <ScrollArea className="px-4 h-190">
-          <div className="space-y-4 py-6 ps-5 flex flex-col gap-8">
+          <div className="space-y-4 py-6 ps-16 flex flex-col gap-8 pt-8">
             {messages.map((message, index) => (
               <ChatBubble key={index} message={message} />
             ))}
