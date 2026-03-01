@@ -1,14 +1,6 @@
-import { Message } from "@/lib/chat-storage";
-import { cn } from "@/lib/utils";
+import { ChatMessage } from "@/lib/chat";
 
-// interface Message {
-//   id: string;
-//   role: "user" | "assistant";
-//   content: string;
-//   // createdAt: number | any;
-// }
-
-export default function ChatBubble({ message }: { message: Message }) {
+export default function ChatBubble({ message }: { message: ChatMessage }) {
   return (
     <div
       className="

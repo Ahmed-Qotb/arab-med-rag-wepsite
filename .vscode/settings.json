@@ -1,0 +1,5 @@
+{
+    "i18n-ally.localesPaths": [
+        "src/app/api/chats/[chatId]/messages"
+    ]
+}
