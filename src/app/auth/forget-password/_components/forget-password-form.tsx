@@ -97,7 +97,7 @@ export default function ForgetPasswordForm() {
       <Button
         type="submit"
         disabled={isPending}
-        className="w-full bg-zinc-800 hover:bg-zinc-700"
+        className="w-full bg-teal-600 hover:bg-teal-500"
       >
         {isPending ? "Sending link..." : "Send reset link"}
       </Button>

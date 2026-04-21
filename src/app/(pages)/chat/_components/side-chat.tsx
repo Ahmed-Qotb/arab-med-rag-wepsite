@@ -1,22 +1,14 @@
-import { Bookmark, Ellipsis, MessageCircle, Plus } from "lucide-react";
+import { Bookmark, MessageCircle } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ChatList from "@/app/(pages)/chat/_components/chat-list";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { SideChatHeader } from "@/app/(pages)/chat/_components/side-chat-header";
 
 export default function SideChat() {
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <h2 className="font-semibold text-2xl">My Chats</h2>
-        <ul className="flex gap-2.5">
-          <li className="flex justify-center items-center bg-teal-600 text-zinc-100 cursor-pointer transition-colors w-fit p-2 rounded-xl">
-            <Plus strokeWidth="1.5" />
-          </li>
-          <li className="flex justify-center items-center bg-zinc-900 text-zinc-100 cursor-pointer transition-colors w-fit p-2 rounded-xl">
-            <Ellipsis strokeWidth="1" />
-          </li>
-        </ul>
-      </div>
+      {/* HEADING & ACTIONS (CLIENT) */}
+      <SideChatHeader />
 
       <div>
         <Tabs defaultValue="chats" className="pt-4">
@@ -38,12 +30,14 @@ export default function SideChat() {
           </TabsList>
           <TabsContent value="chats">
             <ScrollArea className="h-192 w-full ">
-              <ChatList />
+              <ChatList variant="all" />
             </ScrollArea>
           </TabsContent>
 
           <TabsContent value="saved">
-            <ScrollArea className="h-192 w-full ">saved</ScrollArea>
+            <ScrollArea className="h-192 w-full ">
+              <ChatList variant="saved" />
+            </ScrollArea>
           </TabsContent>
         </Tabs>
       </div>

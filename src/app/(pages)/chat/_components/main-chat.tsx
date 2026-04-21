@@ -1,16 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useForm, Controller } from "react-hook-form";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ChatBubble from "./chat-bubble";
-import {
-  addMessageByChatId,
-  getMessagesByChatId,
-  Message,
-} from "@/lib/chat-storage";
 import { Input } from "@/components/ui/input";
+import { ChatMessage } from "@/lib/chat";
 
 type FormValues = {
   message: string;
@@ -21,15 +18,60 @@ interface chatIdParams {
 }
 
 export default function MainChat({ chatId }: chatIdParams) {
-  const [messages, setMessages] = useState<Message[]>([]);
-  // const [isLoading, setIsLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
 
-  // Load messages once on mount
-  useEffect(() => {
-    const storedMessages = getMessagesByChatId(chatId);
-    setMessages(storedMessages);
-  }, [chatId]); // run when chatId changes
+  const {
+    control,
+    handleSubmit,
+    reset,
+  } = useForm<FormValues>({
+    defaultValues: { message: "" },
+  });
+
+  const {
+    data,
+  } = useQuery<{ messages: ChatMessage[] }>({
+    queryKey: ["chat-messages", chatId],
+    queryFn: async () => {
+      const res = await fetch(`/api/chats/${chatId}/messages`);
+      if (!res.ok) {
+        throw new Error("Failed to load messages");
+      }
+      return res.json();
+    },
+  });
+
+  const messages: ChatMessage[] = data?.messages ?? [];
+
+  const sendMessageMutation = useMutation({
+    mutationFn: async (content: string) => {
+      const res = await fetch(`/api/chats/${chatId}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to send message");
+      }
+
+      return res.json() as Promise<{
+        userMessage: ChatMessage;
+        aiMessage: ChatMessage;
+      }>;
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData<{ messages: ChatMessage[] }>(
+        ["chat-messages", chatId],
+        (old) => ({
+          messages: [...(old?.messages ?? []), data.aiMessage],
+        })
+      );
+    },
+  });
 
   // Scroll to bottom whenever messages update
   useEffect(() => {
@@ -37,24 +79,27 @@ export default function MainChat({ chatId }: chatIdParams) {
 
   }, [messages]); // runs on every messages update
 
-  const { control, handleSubmit, reset } = useForm<FormValues>({
-    defaultValues: { message: "" },
-  });
-
   async function onSubmit(data: FormValues) {
     if (!data.message.trim()) return;
 
     // Create the new user message
-    const newMessage: Message = {
+    const newMessage: ChatMessage = {
+      id: crypto.randomUUID(),
       role: "user",
       content: data.message,
+      createdAt: new Date().toISOString(),
     };
 
-    // Update state
-    setMessages((prev) => [...prev, newMessage]);
+    // Optimistically update UI
+    queryClient.setQueryData<{ messages: ChatMessage[] }>(
+      ["chat-messages", chatId],
+      (old) => ({
+        messages: [...(old?.messages ?? []), newMessage],
+      })
+    );
 
-    // Persist to localStorage (or your storage helper)
-    addMessageByChatId(chatId, newMessage);
+    // Fire-and-forget send to backend
+    sendMessageMutation.mutate(data.message);
 
     // Reset the form
     reset();

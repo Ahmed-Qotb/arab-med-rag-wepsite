@@ -1,115 +1,167 @@
-import { ScrollArea } from "@radix-ui/react-scroll-area";
+"use client";
 
-export default function ChatList() {
-  //   Constants
-  const mockChats = [
-    {
-      id: 1,
-      heading: "Cosmic Evolution",
-      fstMessage:
-        "Some 15 billion years ago the universe emerged from a hot, dense sea of...",
-      time: "9:34 PM",
+import { useRouter, usePathname } from "next/navigation";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Bookmark, Loader2 } from "lucide-react";
+import { ChatSummary } from "@/lib/chat";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
+
+type ChatListProps = {
+  variant?: "all" | "saved";
+};
+
+export default function ChatList({ variant = "all" }: ChatListProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const queryClient = useQueryClient();
+
+  const {
+    data,
+    isLoading,
+    isError,
+  } = useQuery<{ chats: ChatSummary[] }>({
+    queryKey: ["chats", { variant }],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (variant === "saved") {
+        params.set("saved", "true");
+      }
+
+      const res = await fetch(
+        `/api/chats${params.toString() ? `?${params.toString()}` : ""}`
+      );
+
+      if (!res.ok) {
+        throw new Error("Failed to load chats");
+      }
+
+      return res.json();
     },
-    {
-      id: 2,
-      heading: "AI & The Future",
-      fstMessage:
-        "Artificial intelligence is transforming the way we interact with technology...",
-      time: "8:12 PM",
+  });
+
+  const toggleSavedMutation = useMutation({
+    mutationFn: async (chat: ChatSummary) => {
+      const res = await fetch(`/api/chats/${chat.id}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ saved: !chat.saved }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Failed to update chat");
+      }
+
+      return res.json() as Promise<{ id: string; saved: boolean }>;
     },
-    {
-      id: 3,
-      heading: "Quantum Mechanics",
-      fstMessage:
-        "Quantum theory explains the behavior of matter and energy at the smallest scales...",
-      time: "6:45 PM",
+    onMutate: (chat) => {
+      toast.loading(chat.saved ? "Removing from saved..." : "Saving chat...");
     },
-    {
-      id: 4,
-      heading: "Space Exploration",
-      fstMessage:
-        "Humanity’s journey beyond Earth has only just begun, with Mars as the next goal...",
-      time: "5:02 PM",
+    onSuccess: (_, chat) => {
+      queryClient.invalidateQueries({ queryKey: ["chats"] });
+      toast.dismiss();
+      toast.success(chat.saved ? "Chat removed from saved" : "Chat saved");
     },
-    {
-      id: 5,
-      heading: "Cosmic Evolution",
-      fstMessage:
-        "Some 15 billion years ago the universe emerged from a hot, dense sea of...",
-      time: "9:34 PM",
+    onError: () => {
+      toast.dismiss();
+      toast.error("Failed to update chat");
     },
-    {
-      id: 6,
-      heading: "AI & The Future",
-      fstMessage:
-        "Artificial intelligence is transforming the way we interact with technology...",
-      time: "8:12 PM",
-    },
-    {
-      id: 7,
-      heading: "Quantum Mechanics",
-      fstMessage:
-        "Quantum theory explains the behavior of matter and energy at the smallest scales...",
-      time: "6:45 PM",
-    },
-    {
-      id: 8,
-      heading: "Space Exploration",
-      fstMessage:
-        "Humanity’s journey beyond Earth has only just begun, with Mars as the next goal...",
-      time: "5:02 PM",
-    },
-    {
-      id: 9,
-      heading: "Space Exploration",
-      fstMessage:
-        "Humanity’s journey beyond Earth has only just begun, with Mars as the next goal...",
-      time: "5:02 PM",
-    },
-    {
-      id: 10,
-      heading: "Space Exploration",
-      fstMessage:
-        "Humanity’s journey beyond Earth has only just begun, with Mars as the next goal...",
-      time: "5:02 PM",
-    },
-    {
-      id: 11,
-      heading: "Space Exploration",
-      fstMessage:
-        "Humanity’s journey beyond Earth has only just begun, with Mars as the next goal...",
-      time: "5:02 PM",
-    },
-    {
-      id: 12,
-      heading: "Space Exploration",
-      fstMessage:
-        "Humanity’s journey beyond Earth has only just begun, with Mars as the next goal...",
-      time: "5:02 PM",
-    },
-  ];
+  });
+
+  const chats = data?.chats ?? [];
+
+  function handleSelectChat(chatId: string) {
+    router.push(`/chat/${chatId}`);
+  }
+
+  const activeChatId =
+    pathname?.startsWith("/chat/") && pathname.split("/")[2]
+      ? pathname.split("/")[2]
+      : null;
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="w-6 h-6 animate-spin text-zinc-400" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="py-8 text-sm text-red-400 text-center">
+        Failed to load chats. Please try again.
+      </div>
+    );
+  }
+
+  if (chats.length === 0) {
+    return (
+      <div className="py-8 text-sm text-neutral-400 text-center">
+        {variant === "saved"
+          ? "No saved chats yet."
+          : "No chats yet. Start a new conversation."}
+      </div>
+    );
+  }
 
   return (
-    <>
-      {/* <ScrollArea className="h-20 bg-amber-300"> */}
-        <ul>
-          {mockChats.map((chat) => (
-            <li
-              key={chat.id}
-              className="hover:bg-dark-nutral p-3 rounded-xl cursor-pointer"
-            >
-              <div className="pb-1.5 flex justify-between items-center">
-                <h4 className="font-semibold ">{chat.heading}</h4>
-                <span className="text-neutral-400 text-sm opacity-60">
-                  {chat.time}
-                </span>
-              </div>
+    <ul>
+      {chats.map((chat) => (
+        <li
+          key={chat.id}
+          className={cn(
+            "group hover:bg-dark-nutral p-3 rounded-xl cursor-pointer flex items-start justify-between gap-2",
+            activeChatId === chat.id && "bg-dark-nutral"
+          )}
+          onClick={() => handleSelectChat(chat.id)}
+        >
+          <div className="flex-1 min-w-0">
+            <div className="pb-1.5 flex justify-between items-center gap-2">
+              <h4 className="font-semibold truncate">
+                {chat.title || "New chat"}
+              </h4>
+              <span className="text-neutral-400 text-xs opacity-70 shrink-0">
+                {new Date(chat.updatedAt).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </div>
 
-              <p className="text-sm text-neutral-400">{chat.fstMessage}</p>
-            </li>
-          ))}
-        </ul>
-      {/* </ScrollArea> */}
-    </>
+            <p className="text-sm text-neutral-400 line-clamp-2">
+              {chat.lastMessagePreview || "No messages yet."}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className={cn(
+              "mt-1 p-1.5 rounded-md text-neutral-500 hover:text-emerald-400 hover:bg-zinc-800/80 transition-colors",
+              chat.saved && "text-emerald-400",
+              toggleSavedMutation.isPending && toggleSavedMutation.variables?.id === chat.id && "opacity-50"
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleSavedMutation.mutate(chat);
+            }}
+            disabled={toggleSavedMutation.isPending}
+            aria-label={chat.saved ? "Unsave chat" : "Save chat"}
+          >
+            {toggleSavedMutation.isPending &&
+            toggleSavedMutation.variables?.id === chat.id ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Bookmark
+                className="w-4 h-4"
+                fill={chat.saved ? "currentColor" : "none"}
+              />
+            )}
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }

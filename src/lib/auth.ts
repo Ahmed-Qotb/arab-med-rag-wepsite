@@ -10,6 +10,12 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  session: {
+    cookieCache: {
+      // Enables getSession in Next.js route handlers / server actions
+      enabled: true,
+    },
+  },
   plugins: [nextCookies()],
   user: {
     deleteUser: {
@@ -17,3 +23,4 @@ export const auth = betterAuth({
     },
   },
 });
+
