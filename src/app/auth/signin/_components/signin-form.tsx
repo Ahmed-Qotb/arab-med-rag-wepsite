@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useSignIn } from "../_hooks/use-signin";
+import { toast } from "sonner";
 
 // Types
 type SignInFormValues = {
@@ -36,10 +37,9 @@ export default function SignInForm() {
     setFormError(null);
     try {
       await mutateAsync(values);
-      // Nav
+      toast.success("Signed in successfully!");
       router.push("/chat");
     } catch (error: any) {
-      // To handle error
       setFormError(error?.message ?? "Something went wrong. Please try again.");
     }
   }
@@ -116,7 +116,7 @@ export default function SignInForm() {
       <Button
         type="submit"
         disabled={isPending}
-        className="w-full bg-zinc-800 hover:bg-zinc-700"
+        className="w-full bg-teal-600 hover:bg-teal-500"
       >
         {isPending ? "Signing in..." : "Sign in"}
       </Button>

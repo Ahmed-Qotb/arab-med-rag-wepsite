@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useSignUp } from "../_hooks/use-signup";
+import { toast } from "sonner";
 
 // Types
 type SignUpFormValues = {
@@ -38,10 +39,9 @@ export default function SignUpForm() {
     setFormError(null);
     try {
       await mutateAsync(values);
-      // Nav
+      toast.success("Account created successfully!");
       router.push("/chat");
     } catch (error: any) {
-      // To handle error
       setFormError(error?.message ?? "Something went wrong. Please try again.");
     }
   }
@@ -144,7 +144,7 @@ export default function SignUpForm() {
       <Button
         type="submit"
         disabled={isPending}
-        className="w-full bg-zinc-800 hover:bg-zinc-700"
+        className="w-full bg-teal-600 hover:bg-teal-500"
       >
         {isPending ? "Creating account..." : "Sign up"}
       </Button>

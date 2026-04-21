@@ -1,28 +1,31 @@
 import { ChatMessage } from "@/lib/chat";
+import { User, Bot } from "lucide-react";
 
 export default function ChatBubble({ message }: { message: ChatMessage }) {
-  return (
-    <div
-      className="
-    relative
-    bg-[#4B4F5B]
-    w-fit
-    rounded-2xl
-    px-3
-    py-2
+  const isUser = message.role === "user";
 
-    before:content-['']
-    before:absolute
-    before:top-0
-    before:start-0
-    before:size-8
-    before:-translate-x-1/2
-    before:-translate-y-1/2
-    before:bg-zinc-800
-    before:rounded-xl
-  "
-    >
-      {message.content}
+  return (
+    <div className="flex gap-3 items-end">
+      <div
+        className={`
+          flex-shrink-0 size-8 rounded-full flex items-center justify-center
+          ${isUser ? "bg-emerald-600" : "bg-violet-600"}
+        `}
+      >
+        {isUser ? (
+          <User className="size-5 text-white" />
+        ) : (
+          <Bot className="size-5 text-white" />
+        )}
+      </div>
+      <div
+        className={`
+          w-fit max-w-[75%] rounded-2xl px-4 py-2 text-sm
+          ${isUser ? "bg-zinc-800 text-zinc-100" : "bg-[#4B4F5B] text-zinc-100"}
+        `}
+      >
+        {message.content}
+      </div>
     </div>
   );
 }
