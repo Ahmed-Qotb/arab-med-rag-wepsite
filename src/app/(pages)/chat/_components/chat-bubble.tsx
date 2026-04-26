@@ -8,7 +8,7 @@ export default function ChatBubble({ message }: { message: ChatMessage }) {
     <div className="flex gap-3 items-end">
       <div
         className={`
-          flex-shrink-0 size-8 rounded-full flex items-center justify-center
+          shrink-0 size-8 rounded-full flex items-center justify-center
           ${isUser ? "bg-emerald-600" : "bg-violet-600"}
         `}
       >

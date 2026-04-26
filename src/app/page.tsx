@@ -1,7 +1,7 @@
 export default function Home() {
   return (
     <div>
-      <p>hello</p>
+      <p>this is the home page go to /chats</p>
     </div>
   );
 }
