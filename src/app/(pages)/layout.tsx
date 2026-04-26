@@ -12,7 +12,7 @@ export default function PagesLayout({
       <SidebarProvider defaultOpen={false}>
         <AppSidebar />
         <main className="w-full pt-4 gap-3.5">
-          <div className="ps-3.5">{children}</div>
+          <div className="pe-3.5">{children}</div>
         </main>
       </SidebarProvider>
     </ReactQueryProvider>

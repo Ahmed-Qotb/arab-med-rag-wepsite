@@ -9,9 +9,6 @@ type RouteParams = {
   }>;
 };
 
-/**
- * Helper to parse and validate MongoDB ObjectId
- */
 function parseObjectId(id: string): ObjectId {
   try {
     return new ObjectId(id);
@@ -44,7 +41,7 @@ export async function GET(_: Request, { params }: RouteParams) {
 
     return NextResponse.json({
       id: chat._id.toString(),
-      title: chat.title ?? "New chat",
+      title: chat.title ?? null,
       lastMessagePreview: chat.lastMessagePreview ?? null,
       updatedAt: chat.updatedAt?.toISOString?.() ?? new Date().toISOString(),
       saved: Boolean(chat.saved),

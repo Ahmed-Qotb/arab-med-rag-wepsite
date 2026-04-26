@@ -1,44 +1,17 @@
 "use client";
 
-import { Ellipsis, Plus } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { Ellipsis, Plus } from "lucide-react";
+import { useCreateChat } from "../_actions/side-chat-header.actions";
 
 export function SideChatHeader() {
   const router = useRouter();
-  const queryClient = useQueryClient();
-
-  const createChatMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch("/api/chats", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({}),
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to create chat");
-      }
-
-      return res.json() as Promise<{
-        id: string;
-        title: string;
-      }>;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["chats"] });
-      router.push(`/chat/${data.id}`);
-    },
-  });
+  const createChatMutation = useCreateChat(router);
 
   return (
     <div className="flex items-center justify-between">
-      {/* HEADING */}
-      <h2 className="font-semibold text-2xl">My Chats</h2>
+      <h2 className="font-semibold text-2xl">محادثاتي</h2>
 
-      {/* ACTIONS */}
       <ul className="flex gap-2.5">
         <li
           className="flex justify-center items-center bg-teal-600 text-zinc-100 cursor-pointer transition-colors w-fit p-2 rounded-xl"
@@ -53,4 +26,3 @@ export function SideChatHeader() {
     </div>
   );
 }
-

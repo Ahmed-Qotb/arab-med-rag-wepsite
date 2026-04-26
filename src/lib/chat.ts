@@ -11,7 +11,7 @@ export type ChatMessage = {
 
 export type ChatSummary = {
   id: string;
-  title: string;
+  title: string | null;
   lastMessagePreview: string | null;
   updatedAt: string;
   saved: boolean;

@@ -9,9 +9,6 @@ type RouteParams = {
   }>;
 };
 
-/**
- * Helper to parse and validate MongoDB ObjectId
- */
 function parseObjectId(id: string): ObjectId {
   try {
     return new ObjectId(id);
@@ -113,8 +110,14 @@ export async function POST(request: Request, { params }: RouteParams) {
       createdAt: aiNow,
     };
 
+    // Only set title on first message (if chat.title is default/original)
+    const shouldSetTitle = !chat.title || chat.title === "محادثة جديدة";
+    const newTitle = shouldSetTitle
+      ? content.trim().split(/\s+/).slice(0, 3).join(" ")
+      : chat.title;
+
     // Add messages to the chat's messages array
-    await chatsCollection.updateOne(
+    const updateResult = await chatsCollection.findOneAndUpdate(
       { _id: objectId, userId: user.id },
       {
         $push: {
@@ -124,15 +127,17 @@ export async function POST(request: Request, { params }: RouteParams) {
         },
         $set: {
           lastMessagePreview: aiContent,
+          ...(shouldSetTitle && { title: newTitle }),
           updatedAt: aiNow,
         },
-        $setOnInsert: {
-          title:
-            chat.title ||
-            (content.length > 40 ? `${content.slice(0, 40)}...` : content),
-        },
+      },
+      {
+        returnDocument: "after",
       }
     );
+
+    const responseTitle = updateResult?.title ?? newTitle;
+    const responsePreview = updateResult?.lastMessagePreview ?? aiContent;
 
     return NextResponse.json(
       {
@@ -147,6 +152,10 @@ export async function POST(request: Request, { params }: RouteParams) {
           role: "ai" as const,
           content: aiContent,
           createdAt: aiNow.toISOString(),
+        },
+        chat: {
+          title: responseTitle,
+          lastMessagePreview: responsePreview,
         },
       },
       { status: 201 }

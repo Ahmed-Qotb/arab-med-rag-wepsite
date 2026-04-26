@@ -37,10 +37,10 @@ export default function SignInForm() {
     setFormError(null);
     try {
       await mutateAsync(values);
-      toast.success("Signed in successfully!");
+      toast.success("تم تسجيل الدخول بنجاح!");
       router.push("/chat");
     } catch (error: any) {
-      setFormError(error?.message ?? "Something went wrong. Please try again.");
+      setFormError(error?.message ?? "حدث خطأ ما. يرجى المحاولة مرة أخرى.");
     }
   }
 
@@ -51,7 +51,7 @@ export default function SignInForm() {
       <div className="space-y-2">
         {/* EMAIL LABEL */}
         <label className="block text-sm font-medium text-zinc-200">
-          Email
+          البريد الإلكتروني
         </label>
 
         {/* EMAIL INPUT */}
@@ -61,10 +61,10 @@ export default function SignInForm() {
           className="bg-[#4B4F5B] border-none placeholder:text-[#A0A7BB]"
           aria-invalid={!!errors.email}
           {...register("email", {
-            required: "Email is required",
+            required: "البريد الإلكتروني مطلوب",
             pattern: {
               value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-              message: "Enter a valid email address",
+              message: "يرجى إدخال بريد إلكتروني صحيح",
             },
           })}
         />
@@ -79,7 +79,7 @@ export default function SignInForm() {
       <div className="space-y-2">
         {/* PASSWORD LABEL */}
         <label className="block text-sm font-medium text-zinc-200">
-          Password
+          كلمة المرور
         </label>
 
         {/* PASSWORD INPUT */}
@@ -89,10 +89,10 @@ export default function SignInForm() {
           className="bg-[#4B4F5B] border-none placeholder:text-[#A0A7BB]"
           aria-invalid={!!errors.password}
           {...register("password", {
-            required: "Password is required",
+            required: "كلمة المرور مطلوبة",
             minLength: {
               value: 8,
-              message: "Password must be at least 8 characters",
+              message: "يجب أن تكون كلمة المرور 8 أحرف على الأقل",
             },
           })}
         />
@@ -118,7 +118,7 @@ export default function SignInForm() {
         disabled={isPending}
         className="w-full bg-teal-600 hover:bg-teal-500"
       >
-        {isPending ? "Signing in..." : "Sign in"}
+        {isPending ? "جاري تسجيل الدخول..." : "تسجيل الدخول"}
       </Button>
     </form>
   );

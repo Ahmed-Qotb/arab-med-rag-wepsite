@@ -39,12 +39,12 @@ export default function ForgetPasswordForm() {
 
       // Response
       setSuccessMessage(
-        "If an account exists for this email, a reset link has been sent."
+        "إذا كان هناك حساب مرتبط بهذا البريد الإلكتروني، سيتم إرسال رابط إعادة التعيين."
       );
       reset();
     } catch (error: any) {
       // To handle error
-      setFormError(error?.message ?? "Something went wrong. Please try again.");
+      setFormError(error?.message ?? "حدث خطأ ما. يرجى المحاولة مرة أخرى.");
     }
   }
 
@@ -55,7 +55,7 @@ export default function ForgetPasswordForm() {
       <div className="space-y-2">
         {/* EMAIL LABEL */}
         <label className="block text-sm font-medium text-zinc-200">
-          Email
+          البريد الإلكتروني
         </label>
 
         {/* EMAIL INPUT */}
@@ -65,10 +65,10 @@ export default function ForgetPasswordForm() {
           className="bg-[#4B4F5B] border-none placeholder:text-[#A0A7BB]"
           aria-invalid={!!errors.email}
           {...register("email", {
-            required: "Email is required",
+            required: "البريد الإلكتروني مطلوب",
             pattern: {
               value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-              message: "Enter a valid email address",
+              message: "يرجى إدخال بريد إلكتروني صحيح",
             },
           })}
         />
@@ -99,7 +99,7 @@ export default function ForgetPasswordForm() {
         disabled={isPending}
         className="w-full bg-teal-600 hover:bg-teal-500"
       >
-        {isPending ? "Sending link..." : "Send reset link"}
+        {isPending ? "جاري إرسال الرابط..." : "إرسال رابط إعادة التعيين"}
       </Button>
     </form>
   );

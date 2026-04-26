@@ -2,95 +2,73 @@
 
 import { useEffect, useRef } from "react";
 import { useForm, Controller } from "react-hook-form";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ChatBubble from "./chat-bubble";
 import { Input } from "@/components/ui/input";
 import { ChatMessage } from "@/lib/chat";
+import { useChatMessages, useSendMessage } from "../_actions/main-chat.actions";
+import { getTitleFromContent } from "../_utils/main-chat.utils";
+import type { FormValues, ChatListResponse, SendMessageResponse } from "../_utils/main-chat.utils";
 
-type FormValues = {
-  message: string;
+type MainChatProps = {
+  chatId: string;
 };
 
-interface chatIdParams {
-  chatId: string;
-}
-
-export default function MainChat({ chatId }: chatIdParams) {
+export default function MainChat({ chatId }: MainChatProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
 
-  const {
-    control,
-    handleSubmit,
-    reset,
-  } = useForm<FormValues>({
+  const { control, handleSubmit, reset } = useForm<FormValues>({
     defaultValues: { message: "" },
   });
 
-  const {
-    data,
-  } = useQuery<{ messages: ChatMessage[] }>({
-    queryKey: ["chat-messages", chatId],
-    queryFn: async () => {
-      const res = await fetch(`/api/chats/${chatId}/messages`);
-      if (!res.ok) {
-        throw new Error("Failed to load messages");
-      }
-      return res.json();
-    },
-  });
+  const { data } = useChatMessages(chatId);
+  const sendMessageMutation = useSendMessage(chatId);
 
   const messages: ChatMessage[] = data?.messages ?? [];
 
-  const sendMessageMutation = useMutation({
-    mutationFn: async (content: string) => {
-      const res = await fetch(`/api/chats/${chatId}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ content }),
-      });
+  // Callback to update chat list and messages after AI response arrives
+  function handleMessageSent(response: SendMessageResponse) {
+    // Add AI message to messages list
+    queryClient.setQueryData<{ messages: ChatMessage[] }>(
+      ["chat-messages", chatId],
+      (old) => ({
+        messages: [...(old?.messages ?? []), response.aiMessage],
+      })
+    );
 
-      if (!res.ok) {
-        throw new Error("Failed to send message");
-      }
+    // Revalidate chat list to get fresh title from server
+    queryClient.invalidateQueries({ queryKey: ["chats"] });
+  }
 
-      return res.json() as Promise<{
-        userMessage: ChatMessage;
-        aiMessage: ChatMessage;
-      }>;
-    },
-    onSuccess: (data) => {
-      queryClient.setQueryData<{ messages: ChatMessage[] }>(
-        ["chat-messages", chatId],
-        (old) => ({
-          messages: [...(old?.messages ?? []), data.aiMessage],
-        })
-      );
-    },
-  });
+  // Attach success handler to mutation
+  useEffect(() => {
+    if (sendMessageMutation.isSuccess && sendMessageMutation.data) {
+      handleMessageSent(sendMessageMutation.data);
+    }
+  }, [sendMessageMutation.isSuccess, sendMessageMutation.data]);
 
   // Scroll to bottom whenever messages update
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
-  }, [messages]); // runs on every messages update
+  async function onSubmit(values: FormValues) {
+    if (!values.message.trim()) return;
 
-  async function onSubmit(data: FormValues) {
-    if (!data.message.trim()) return;
+    const messageContent = values.message;
 
-    // Create the new user message
+    // Create optimistic user message
     const newMessage: ChatMessage = {
       id: crypto.randomUUID(),
       role: "user",
-      content: data.message,
+      content: messageContent,
       createdAt: new Date().toISOString(),
     };
 
-    // Optimistically update UI
+    // Optimistically update UI with new message
     queryClient.setQueryData<{ messages: ChatMessage[] }>(
       ["chat-messages", chatId],
       (old) => ({
@@ -98,27 +76,61 @@ export default function MainChat({ chatId }: chatIdParams) {
       })
     );
 
-    // Fire-and-forget send to backend
-    sendMessageMutation.mutate(data.message);
+    // Update lastMessagePreview only (title handled in handleMessageSent)
+    queryClient.setQueryData<ChatListResponse>(
+      ["chats", { variant: "all" }],
+      (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          chats: old.chats.map((chat) =>
+            chat.id === chatId
+              ? { ...chat, lastMessagePreview: messageContent }
+              : chat
+          ),
+        };
+      }
+    );
 
-    // Reset the form
+    queryClient.setQueryData<ChatListResponse>(
+      ["chats", { variant: "saved" }],
+      (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          chats: old.chats.map((chat) =>
+            chat.id === chatId
+              ? { ...chat, lastMessagePreview: messageContent }
+              : chat
+          ),
+        };
+      }
+    );
+
+    sendMessageMutation.mutate(messageContent);
     reset();
   }
 
   return (
-    <div className=" h-full pe-3.5 pb-3.5">
+    <div className="h-full ps-3.5 pb-3.5">
       <div className="h-full flex bg-[#3F424A] rounded-xl flex-col justify-between">
-        {/* Messages */}
-        <ScrollArea className="px-4 h-190">
-          <div className="space-y-4 py-6 ps-16 flex flex-col gap-8 pt-8">
-            {messages.map((message, index) => (
-              <ChatBubble key={index} message={message} />
-            ))}
+        {/* Messages area with scroll */}
+        <ScrollArea className="px-4 h-[calc(100vh-9rem)]">
+          <div className="space-y-4 py-6 flex flex-col gap-8 pt-8">
+            {messages.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-neutral-400 text-center">
+                <p>اسأل سؤالك لبدء المحادثة</p>
+              </div>
+            ) : (
+              messages.map((message, index) => (
+                <ChatBubble key={index} message={message} />
+              ))
+            )}
             <div ref={bottomRef} />
           </div>
         </ScrollArea>
 
-        {/* Input */}
+        {/* Message input form */}
         <form onSubmit={handleSubmit(onSubmit)} className="p-4">
           <div className="flex gap-2">
             <Controller
@@ -127,8 +139,8 @@ export default function MainChat({ chatId }: chatIdParams) {
               render={({ field }) => (
                 <Input
                   {...field}
-                  className="bg-[#4B4F5B] border-none placeholder:text-[#A0A7BB] py-6 relative"
-                  placeholder="Ask questions, or type ‘/’ for commands"
+                  className="bg-[#4B4F5B] border-none placeholder:text-[#A0A7BB] py-1 relative"
+                  placeholder="اسأل أسئلة، أو اكتب '/' للأوامر"
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
@@ -138,9 +150,11 @@ export default function MainChat({ chatId }: chatIdParams) {
                 />
               )}
             />
-
-            <Button type="submit" className="bg-zinc-800 py-6">
-              Send
+            <Button
+              type="submit"
+              className="bg-zinc-800 cursor-pointer text-zinc-50 hover:text-zinc-800"
+            >
+              إرسال
             </Button>
           </div>
         </form>

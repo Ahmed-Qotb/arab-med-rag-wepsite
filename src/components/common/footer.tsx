@@ -22,7 +22,7 @@ function Footer() {
       <div className="container flex justify-center sm:items-center sm:gap-5 flex-wrap sm:flex-nowrap">
         {/* socials */}
         <div className="w-[50%] text-center">
-          <h3 className="font-extrabold text-white text-xl">Social Links</h3>
+          <h3 className="font-extrabold text-white text-xl">روابط التواصل الاجتماعي</h3>
           <ul className="flex justify-center items-center gap-4 py-5">
             {/* linked in */}
             <li>
@@ -49,7 +49,7 @@ function Footer() {
         </div>
         {/* important links */}
         <div className="w-[50%]  text-center">
-          <h3 className="font-extrabold text-white text-xl">Quick Links</h3>
+          <h3 className="font-extrabold text-white text-xl">روابط سريعة</h3>
           <ul className="flex flex-col item">
             {navLinks.map(
               (link: { href: string; label: string }, index: number) => (
@@ -75,7 +75,7 @@ function Footer() {
               harum voluptatem, perferendis nam nisi. Error, facilis. Maxime
               consequatur harum excepturi!
               <br />
-              <span className="font-extrabold">Thanks for visiting!</span>
+              <span className="font-extrabold">شكراً لزيارتك!</span>
             </p>
           </div>
         </div>
