@@ -55,26 +55,26 @@ export default function ChatList({ variant = "all" }: ChatListProps) {
   }
 
   return (
-    <ul>
+    <ul className="w-full">
       {chats.map((chat) => (
         <li
           key={chat.id}
           className={cn(
-            "group hover:bg-dark-nutral p-3 rounded-xl cursor-pointer flex items-start justify-between gap-2 my-1",
+            "group hover:bg-dark-nutral p-3 rounded-xl cursor-pointer flex items-start justify-between gap-2 my-1 overflow-hidden",
             activeChatId === chat.id && "bg-dark-nutral"
           )}
           onClick={() => handleSelectChat(chat.id)}
         >
           <div className="flex-1 min-w-0">
-            <div className="pb-1.5 flex justify-between items-center gap-2">
+            <div className="pb-1.5 flex justify-between items-center gap-2 min-w-0">
               {/* Time stamp */}
               <span className="text-neutral-400 text-xs opacity-70 shrink-0">
                 {formatChatTime(chat.updatedAt)}
               </span>
 
-              {/* Chat title with ellipsis indicator */}
-              <h4 className="font-semibold truncate flex items-center gap-1">
-                <span>{chat.title || "محادثة جديدة"}</span>
+              {/* Chat title — truncate on the span, not the flex container */}
+              <h4 className="font-semibold flex items-center gap-1 min-w-0 overflow-hidden">
+                <span className="truncate">{chat.title || "محادثة جديدة"}</span>
                 {shouldShowEllipsis(chat.title) && (
                   <span className="shrink-0">...</span>
                 )}
@@ -82,7 +82,7 @@ export default function ChatList({ variant = "all" }: ChatListProps) {
             </div>
 
             {/* Last message preview */}
-            <p className="text-sm text-neutral-400 line-clamp-2">
+            <p className="text-sm text-neutral-400 line-clamp-2 break-words">
               {chat.lastMessagePreview || "لا توجد رسائل حتى الآن."}
             </p>
           </div>

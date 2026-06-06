@@ -1,24 +1,34 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ChatBubble from "./chat-bubble";
+import TypingIndicator from "./typing-indicator";
+import ChatModeDialog from "./chat-mode-dialog";
 import { Input } from "@/components/ui/input";
-import { ChatMessage } from "@/lib/chat";
+import type { ChatMessage, ChatMode, ResponseMeta } from "@/lib/chat";
 import { useChatMessages, useSendMessage } from "../_actions/main-chat.actions";
-import { getTitleFromContent } from "../_utils/main-chat.utils";
 import type { FormValues, ChatListResponse, SendMessageResponse } from "../_utils/main-chat.utils";
 
 type MainChatProps = {
   chatId: string;
 };
 
+type LastResponseExtra = {
+  meta?: ResponseMeta;
+  disclaimer?: string;
+  retrievedContext?: string;
+};
+
 export default function MainChat({ chatId }: MainChatProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+  const [mode, setMode] = useState<ChatMode>("all");
+  const [lastResponseExtra, setLastResponseExtra] = useState<LastResponseExtra | null>(null);
 
   const { control, handleSubmit, reset } = useForm<FormValues>({
     defaultValues: { message: "" },
@@ -28,39 +38,59 @@ export default function MainChat({ chatId }: MainChatProps) {
   const sendMessageMutation = useSendMessage(chatId);
 
   const messages: ChatMessage[] = data?.messages ?? [];
+  const isPending = sendMessageMutation.isPending;
 
-  // Callback to update chat list and messages after AI response arrives
+  // Restore persisted monitoring data on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("latest-response");
+      if (stored) setLastResponseExtra(JSON.parse(stored) as LastResponseExtra);
+    } catch {}
+  }, []);
+
   function handleMessageSent(response: SendMessageResponse) {
-    // Add AI message to messages list
     queryClient.setQueryData<{ messages: ChatMessage[] }>(
       ["chat-messages", chatId],
       (old) => ({
         messages: [...(old?.messages ?? []), response.aiMessage],
       })
     );
-
-    // Revalidate chat list to get fresh title from server
     queryClient.invalidateQueries({ queryKey: ["chats"] });
+    const extra: LastResponseExtra = {
+      meta: response.meta,
+      disclaimer: response.disclaimer,
+      retrievedContext: response.retrievedContext,
+    };
+    setLastResponseExtra(extra);
+    try {
+      localStorage.setItem("latest-response", JSON.stringify(extra));
+    } catch {}
   }
 
-  // Attach success handler to mutation
   useEffect(() => {
     if (sendMessageMutation.isSuccess && sendMessageMutation.data) {
       handleMessageSent(sendMessageMutation.data);
     }
   }, [sendMessageMutation.isSuccess, sendMessageMutation.data]);
 
-  // Scroll to bottom whenever messages update
+  useEffect(() => {
+    if (sendMessageMutation.isError) {
+      toast.error("حدث خطأ. يرجى المحاولة مرة أخرى.");
+    }
+  }, [sendMessageMutation.isError]);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isPending]);
 
   async function onSubmit(values: FormValues) {
-    if (!values.message.trim()) return;
+    if (!values.message.trim() || isPending) return;
 
     const messageContent = values.message;
 
-    // Create optimistic user message
+    // Clear previous meta while new response is loading
+    setLastResponseExtra(null);
+
     const newMessage: ChatMessage = {
       id: crypto.randomUUID(),
       role: "user",
@@ -68,7 +98,6 @@ export default function MainChat({ chatId }: MainChatProps) {
       createdAt: new Date().toISOString(),
     };
 
-    // Optimistically update UI with new message
     queryClient.setQueryData<{ messages: ChatMessage[] }>(
       ["chat-messages", chatId],
       (old) => ({
@@ -76,7 +105,6 @@ export default function MainChat({ chatId }: MainChatProps) {
       })
     );
 
-    // Update lastMessagePreview only (title handled in handleMessageSent)
     queryClient.setQueryData<ChatListResponse>(
       ["chats", { variant: "all" }],
       (old) => {
@@ -85,7 +113,7 @@ export default function MainChat({ chatId }: MainChatProps) {
           ...old,
           chats: old.chats.map((chat) =>
             chat.id === chatId
-              ? { ...chat, lastMessagePreview: messageContent }
+              ? { ...chat, lastMessagePreview: messageContent.trim().split(/\s+/).slice(0, 10).join(" ") }
               : chat
           ),
         };
@@ -100,37 +128,53 @@ export default function MainChat({ chatId }: MainChatProps) {
           ...old,
           chats: old.chats.map((chat) =>
             chat.id === chatId
-              ? { ...chat, lastMessagePreview: messageContent }
+              ? { ...chat, lastMessagePreview: messageContent.trim().split(/\s+/).slice(0, 10).join(" ") }
               : chat
           ),
         };
       }
     );
 
-    sendMessageMutation.mutate(messageContent);
+    sendMessageMutation.mutate({ content: messageContent, mode });
     reset();
   }
 
   return (
     <div className="h-full ps-3.5 pb-3.5">
       <div className="h-full flex bg-[#3F424A] rounded-xl flex-col justify-between">
-        {/* Messages area with scroll */}
-        <ScrollArea className="px-4 h-[calc(100vh-9rem)]">
-          <div className="space-y-4 py-6 flex flex-col gap-8 pt-8">
-            {messages.length === 0 ? (
+        {/* Chat header: mode indicator */}
+        <div className="flex items-center justify-end px-4 pt-3 pb-1">
+          <ChatModeDialog mode={mode} onModeChange={setMode} />
+        </div>
+
+        {/* Messages area */}
+        <ScrollArea className="px-4 h-[calc(100vh-10rem)]">
+          <div className="flex flex-col gap-6 pt-4 pb-2">
+            {messages.length === 0 && !isPending ? (
               <div className="flex items-center justify-center h-full text-neutral-400 text-center">
                 <p>اسأل سؤالك لبدء المحادثة</p>
               </div>
             ) : (
-              messages.map((message, index) => (
-                <ChatBubble key={index} message={message} />
-              ))
+              messages.map((message, index) => {
+                const isLastMessage = index === messages.length - 1;
+                const isLastAi = isLastMessage && message.role === "ai";
+                return (
+                  <ChatBubble
+                    key={message.id}
+                    message={message}
+                    meta={isLastAi ? lastResponseExtra?.meta : undefined}
+                    disclaimer={isLastAi ? lastResponseExtra?.disclaimer : undefined}
+                    retrievedContext={isLastAi ? lastResponseExtra?.retrievedContext : message.retrievedContext}
+                  />
+                );
+              })
             )}
+            {isPending && <TypingIndicator />}
             <div ref={bottomRef} />
           </div>
         </ScrollArea>
 
-        {/* Message input form */}
+        {/* Input form */}
         <form onSubmit={handleSubmit(onSubmit)} className="p-4">
           <div className="flex gap-2">
             <Controller
@@ -139,10 +183,11 @@ export default function MainChat({ chatId }: MainChatProps) {
               render={({ field }) => (
                 <Input
                   {...field}
-                  className="bg-[#4B4F5B] border-none placeholder:text-[#A0A7BB] py-1 relative"
+                  disabled={isPending}
+                  className="bg-[#4B4F5B] border-none placeholder:text-[#A0A7BB] py-1 relative disabled:opacity-60 disabled:cursor-not-allowed"
                   placeholder="اسأل أسئلة، أو اكتب '/' للأوامر"
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
+                    if (e.key === "Enter" && !e.shiftKey && !isPending) {
                       e.preventDefault();
                       handleSubmit(onSubmit)();
                     }
@@ -152,7 +197,8 @@ export default function MainChat({ chatId }: MainChatProps) {
             />
             <Button
               type="submit"
-              className="bg-zinc-800 cursor-pointer text-zinc-50 hover:text-zinc-800"
+              disabled={isPending}
+              className="bg-zinc-800 cursor-pointer text-zinc-50 hover:text-zinc-800 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               إرسال
             </Button>
