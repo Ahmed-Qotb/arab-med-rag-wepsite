@@ -12,10 +12,8 @@ export type SignInInput = {
 
 export async function signInWithEmail(values: SignInInput) {
   try {
-    // Ensure MongoDB connection (idempotent - returns immediately if already connected)
     await connectMongoClient();
 
-    // Request
     const result = await auth.api.signInEmail({
       body: {
         email: values.email,
@@ -24,14 +22,10 @@ export async function signInWithEmail(values: SignInInput) {
       headers: await headers(),
     });
 
-    // Response
-    return result;
+    return { data: result, error: null };
   } catch (error: any) {
-    // To handle error
     console.error("Sign in error:", error);
-    const message =
-      error?.message ?? "Failed to sign in. Please check your credentials.";
-    throw new Error(message);
+    return { data: null, error: "البريد الإلكتروني أو كلمة المرور غير صحيحة." };
   }
 }
 

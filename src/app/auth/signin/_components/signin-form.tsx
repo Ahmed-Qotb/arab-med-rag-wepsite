@@ -36,11 +36,15 @@ export default function SignInForm() {
   async function onSubmit(values: SignInFormValues) {
     setFormError(null);
     try {
-      await mutateAsync(values);
+      const result = await mutateAsync(values);
+      if (result.error) {
+        setFormError(result.error);
+        return;
+      }
       toast.success("تم تسجيل الدخول بنجاح!");
       router.push("/chat");
-    } catch (error: any) {
-      setFormError(error?.message ?? "حدث خطأ ما. يرجى المحاولة مرة أخرى.");
+    } catch {
+      setFormError("حدث خطأ ما. يرجى المحاولة مرة أخرى.");
     }
   }
 

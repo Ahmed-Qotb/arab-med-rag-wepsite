@@ -13,10 +13,8 @@ export type SignUpInput = {
 
 export async function signUpWithEmail(values: SignUpInput) {
   try {
-    // Ensure MongoDB connection (idempotent - returns immediately if already connected)
     await connectMongoClient();
 
-    // Request
     const result = await auth.api.signUpEmail({
       body: {
         name: values.name,
@@ -26,14 +24,16 @@ export async function signUpWithEmail(values: SignUpInput) {
       headers: await headers(),
     });
 
-    // Response
-    return result;
+    return { data: result, error: null };
   } catch (error: any) {
-    // To handle error
     console.error("Sign up error:", error);
-    const message =
-      error?.message ?? "Failed to sign up. Please try again later.";
-    throw new Error(message);
+    const isEmailTaken = error?.message?.toLowerCase().includes("email");
+    return {
+      data: null,
+      error: isEmailTaken
+        ? "البريد الإلكتروني مستخدم بالفعل."
+        : "حدث خطأ ما. يرجى المحاولة مرة أخرى.",
+    };
   }
 }
 
