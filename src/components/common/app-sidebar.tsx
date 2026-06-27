@@ -17,28 +17,19 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 export function AppSidebar() {
-  const {
-    state,
-    // open,
-    // setOpen,
-    // openMobile,
-    // setOpenMobile,
-    // isMobile,
-    // toggleSidebar,
-  } = useSidebar();
-
+  const { state } = useSidebar();
   const pathName = usePathname();
 
   return (
     <div className="bg-dark-nutral">
-      <Sidebar className="bg-dark-nutral border-none" collapsible="icon">
+      <Sidebar className="bg-dark-nutral border-none" collapsible="icon" side="right">
         <SidebarTrigger className="m-auto w-full bg-dark-nutral text-white cursor-pointer border-none rounded-none" />
         <SidebarHeader className="bg-dark-nutral">
           <Image
             src={logo}
             width={40}
             height={40}
-            alt="robot logo"
+            alt="شعار الروبوت"
             className="mx-auto"
           />
         </SidebarHeader>
@@ -62,7 +53,7 @@ export function AppSidebar() {
                       : "hidden opacity-0"
                   )}
                 >
-                  chats
+                  الدردشة
                 </p>
               </li>
             </Link>
@@ -84,7 +75,7 @@ export function AppSidebar() {
                       : "hidden opacity-0"
                   )}
                 >
-                  settings
+                  الإعدادات
                 </p>
               </li>
             </Link>
@@ -106,7 +97,7 @@ export function AppSidebar() {
                       : "hidden opacity-0"
                   )}
                 >
-                  discover
+                  اكتشف
                 </p>
               </li>
             </Link>

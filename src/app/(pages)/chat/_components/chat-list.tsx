@@ -1,85 +1,32 @@
 "use client";
 
 import { useRouter, usePathname } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Bookmark, Loader2 } from "lucide-react";
+import { Loader2, Bookmark } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { ChatSummary } from "@/lib/chat";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
-
-type ChatListProps = {
-  variant?: "all" | "saved";
-};
+import { useChatList, useToggleChatSaved } from "../_actions/chat-list.actions";
+import { formatChatTime, shouldShowEllipsis } from "../_utils/chat-list.utils";
+import type { ChatListProps } from "../_utils/chat-list.utils";
 
 export default function ChatList({ variant = "all" }: ChatListProps) {
   const router = useRouter();
   const pathname = usePathname();
   const queryClient = useQueryClient();
 
-  const {
-    data,
-    isLoading,
-    isError,
-  } = useQuery<{ chats: ChatSummary[] }>({
-    queryKey: ["chats", { variant }],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (variant === "saved") {
-        params.set("saved", "true");
-      }
+  const { data, isLoading, isError } = useChatList(variant);
+  const toggleSavedMutation = useToggleChatSaved(queryClient);
 
-      const res = await fetch(
-        `/api/chats${params.toString() ? `?${params.toString()}` : ""}`
-      );
-
-      if (!res.ok) {
-        throw new Error("Failed to load chats");
-      }
-
-      return res.json();
-    },
-  });
-
-  const toggleSavedMutation = useMutation({
-    mutationFn: async (chat: ChatSummary) => {
-      const res = await fetch(`/api/chats/${chat.id}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ saved: !chat.saved }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Failed to update chat");
-      }
-
-      return res.json() as Promise<{ id: string; saved: boolean }>;
-    },
-    onMutate: (chat) => {
-      toast.loading(chat.saved ? "Removing from saved..." : "Saving chat...");
-    },
-    onSuccess: (_, chat) => {
-      queryClient.invalidateQueries({ queryKey: ["chats"] });
-      toast.dismiss();
-      toast.success(chat.saved ? "Chat removed from saved" : "Chat saved");
-    },
-    onError: () => {
-      toast.dismiss();
-      toast.error("Failed to update chat");
-    },
-  });
-
-  const chats = data?.chats ?? [];
+  const chats: ChatSummary[] = data?.chats ?? [];
 
   function handleSelectChat(chatId: string) {
     router.push(`/chat/${chatId}`);
   }
 
-  const activeChatId =
-    pathname?.startsWith("/chat/") && pathname.split("/")[2]
-      ? pathname.split("/")[2]
-      : null;
+  // Get the currently active chat ID from URL
+  const activeChatId = pathname?.startsWith("/chat/")
+    ? pathname.split("/")[2]
+    : null;
 
   if (isLoading) {
     return (
@@ -92,7 +39,7 @@ export default function ChatList({ variant = "all" }: ChatListProps) {
   if (isError) {
     return (
       <div className="py-8 text-sm text-red-400 text-center">
-        Failed to load chats. Please try again.
+        فشل في تحميل المحادثات. يرجى المحاولة مرة أخرى.
       </div>
     );
   }
@@ -101,54 +48,61 @@ export default function ChatList({ variant = "all" }: ChatListProps) {
     return (
       <div className="py-8 text-sm text-neutral-400 text-center">
         {variant === "saved"
-          ? "No saved chats yet."
-          : "No chats yet. Start a new conversation."}
+          ? "لا توجد محادثات محفوظة حتى الآن."
+          : "لا توجد محادثات حتى الآن. ابدأ محادثة جديدة."}
       </div>
     );
   }
 
   return (
-    <ul>
+    <ul className="w-full">
       {chats.map((chat) => (
         <li
           key={chat.id}
           className={cn(
-            "group hover:bg-dark-nutral p-3 rounded-xl cursor-pointer flex items-start justify-between gap-2",
+            "group hover:bg-dark-nutral p-3 rounded-xl cursor-pointer flex items-start justify-between gap-2 my-1 overflow-hidden",
             activeChatId === chat.id && "bg-dark-nutral"
           )}
           onClick={() => handleSelectChat(chat.id)}
         >
           <div className="flex-1 min-w-0">
-            <div className="pb-1.5 flex justify-between items-center gap-2">
-              <h4 className="font-semibold truncate">
-                {chat.title || "New chat"}
-              </h4>
+            <div className="pb-1.5 flex justify-between items-center gap-2 min-w-0">
+              {/* Time stamp */}
               <span className="text-neutral-400 text-xs opacity-70 shrink-0">
-                {new Date(chat.updatedAt).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
+                {formatChatTime(chat.updatedAt)}
               </span>
+
+              {/* Chat title — truncate on the span, not the flex container */}
+              <h4 className="font-semibold flex items-center gap-1 min-w-0 overflow-hidden">
+                <span className="truncate">{chat.title || "محادثة جديدة"}</span>
+                {shouldShowEllipsis(chat.title) && (
+                  <span className="shrink-0">...</span>
+                )}
+              </h4>
             </div>
 
-            <p className="text-sm text-neutral-400 line-clamp-2">
-              {chat.lastMessagePreview || "No messages yet."}
+            {/* Last message preview */}
+            <p className="text-sm text-neutral-400 line-clamp-2 break-words">
+              {chat.lastMessagePreview || "لا توجد رسائل حتى الآن."}
             </p>
           </div>
 
+          {/* Save/unsave button */}
           <button
             type="button"
             className={cn(
               "mt-1 p-1.5 rounded-md text-neutral-500 hover:text-emerald-400 hover:bg-zinc-800/80 transition-colors",
               chat.saved && "text-emerald-400",
-              toggleSavedMutation.isPending && toggleSavedMutation.variables?.id === chat.id && "opacity-50"
+              toggleSavedMutation.isPending &&
+                toggleSavedMutation.variables?.id === chat.id &&
+                "opacity-50"
             )}
             onClick={(e) => {
               e.stopPropagation();
               toggleSavedMutation.mutate(chat);
             }}
             disabled={toggleSavedMutation.isPending}
-            aria-label={chat.saved ? "Unsave chat" : "Save chat"}
+            aria-label={chat.saved ? "إلغاء حفظ المحادثة" : "حفظ المحادثة"}
           >
             {toggleSavedMutation.isPending &&
             toggleSavedMutation.variables?.id === chat.id ? (

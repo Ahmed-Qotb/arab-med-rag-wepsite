@@ -1,4 +1,3 @@
-import MainChat from "./_components/main-chat";
 import SideChat from "./_components/side-chat";
 
 export default function Page({
@@ -8,10 +7,10 @@ export default function Page({
 }>) {
   return (
     <div className="grid grid-cols-12 w-full gap-3.5">
+      <div className="col-span-9">{children}</div>
       <div className="col-span-3">
         <SideChat />
       </div>
-      <div className="col-span-9">{children}</div>
     </div>
   );
 }

@@ -18,7 +18,6 @@ export async function GET(request: Request) {
       userId: user.id,
     };
 
-    // Filter by saved status if provided
     if (savedParam === "true") {
       filter.saved = true;
     }
@@ -32,7 +31,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       chats: chats.map((chat: any) => ({
         id: chat._id.toString(),
-        title: chat.title ?? "New chat",
+        title: chat.title ?? null,
         lastMessagePreview: chat.lastMessagePreview ?? null,
         updatedAt: chat.updatedAt?.toISOString?.() ?? new Date().toISOString(),
         saved: Boolean(chat.saved),
@@ -55,7 +54,7 @@ export async function POST(request: Request) {
     const body = await request.json().catch(() => ({}));
 
     const now = new Date();
-    const title: string = body.title || "New chat";
+    const title: string = body.title || "محادثة جديدة";
     const saved: boolean = Boolean(body.saved);
 
     const chatsCollection = db.collection("chats");
