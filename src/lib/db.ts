@@ -17,7 +17,7 @@ async function createAndConnect(): Promise<MongoClient> {
 
 export async function connectMongoClient(): Promise<MongoClient> {
   const existing = globalForMongo.mongoClient;
-  if ((existing as any)?.topology?.isConnected()) return existing;
+  if (existing && (existing as any).topology?.isConnected()) return existing;
   // Topology is closed or never opened — create a fresh client
   return createAndConnect();
 }
