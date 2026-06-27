@@ -23,7 +23,7 @@ export default function TypingIndicator() {
           <span className="size-1.5 rounded-full bg-zinc-400 animate-bounce [animation-delay:300ms]" />
         </div>
         {showDelayed && (
-          <p className="text-xs text-zinc-400">يستغرق هذا وقتاً أطول من المعتاد...</p>
+          <p className="text-xs text-zinc-400">...قد يستغرق هذا وقتاً أطول من المعتاد</p>
         )}
       </div>
     </div>

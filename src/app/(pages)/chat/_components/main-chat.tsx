@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import ChatBubble from "./chat-bubble";
@@ -31,6 +33,8 @@ export default function MainChat({ chatId }: MainChatProps) {
   const [lastResponseExtra, setLastResponseExtra] = useState<LastResponseExtra | null>(null);
 
   const previousMessagesRef = useRef<{ messages: ChatMessage[] } | undefined>(undefined);
+
+  const router = useRouter();
 
   const { control, handleSubmit, reset } = useForm<FormValues>({
     defaultValues: { message: "" },
@@ -150,9 +154,18 @@ export default function MainChat({ chatId }: MainChatProps) {
   return (
     <div className="h-full ps-3.5 pb-3.5">
       <div className="h-full flex bg-[#3F424A] rounded-xl flex-col justify-between">
-        {/* Chat header: mode indicator */}
-        <div className="flex items-center justify-end px-4 pt-3 pb-1">
-          <ChatModeDialog mode={mode} onModeChange={setMode} />
+        {/* Chat header: back button (mobile only) + mode indicator */}
+        <div className="flex items-center justify-between px-4 pt-3 pb-1">
+          <button
+            onClick={() => router.push("/chat")}
+            className="lg:hidden flex items-center gap-1 text-zinc-400 hover:text-zinc-100 transition-colors text-sm"
+          >
+            <ArrowRight size={16} />
+            المحادثات
+          </button>
+          <div className="lg:w-full flex justify-end">
+            <ChatModeDialog mode={mode} onModeChange={setMode} />
+          </div>
         </div>
 
         {/* Messages area */}
