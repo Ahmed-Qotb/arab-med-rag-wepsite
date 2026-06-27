@@ -1,68 +1,55 @@
-// lib/db.ts
+import type { Db } from "mongodb";
 import { MongoClient } from "mongodb";
 import mongoose from "mongoose";
 
 const MONGODB_URI = process.env.MONGODB_URI!;
+const globalForMongo = global as unknown as { mongoClient: MongoClient | undefined };
 
-// Global for mongo client to use once across the app and not re-create it on each request
-const globalForMongo = global as any;
-
-// Mongo client instance - singleton pattern
-export const client =
-  globalForMongo.mongoClient ?? new MongoClient(MONGODB_URI);
-
-// Set global for mongo client
-if (!globalForMongo.mongoClient) {
-  globalForMongo.mongoClient = client;
-}
-
-// Connect to MongoDB if not already connected
-let connectionPromise: Promise<MongoClient> | null = null;
-
-export async function connectMongoClient() {
-  // Check if already connected
-  if (client.topology?.isConnected()) {
-    return client;
-  }
-
-  // If connection is in progress, return the existing promise
-  if (connectionPromise) {
-    return connectionPromise;
-  }
-
-  // Start new connection
-  connectionPromise = (async () => {
-    try {
-      await client.connect();
-      console.log("MongoDB client connected successfully");
-      return client;
-    } catch (error) {
-      connectionPromise = null; // Reset on error so we can retry
-      console.error("Failed to connect to MongoDB:", error);
-      throw error;
-    }
-  })();
-
-  return connectionPromise;
-}
-
-// Initialize connection globally on module load
-// This ensures MongoDB is connected when the app starts
-if (process.env.NODE_ENV !== "test") {
-  // Start connection immediately (non-blocking)
-  connectMongoClient().catch((error) => {
-    console.error("MongoDB connection initialization error:", error);
+async function createAndConnect(): Promise<MongoClient> {
+  const c = new MongoClient(MONGODB_URI, {
+    serverSelectionTimeoutMS: 10_000,
+    maxIdleTimeMS: 45_000,
   });
+  await c.connect();
+  globalForMongo.mongoClient = c;
+  return c;
 }
 
-// mongodb db instance
-export const db = client.db("grad-app");
+export async function connectMongoClient(): Promise<MongoClient> {
+  const existing = globalForMongo.mongoClient;
+  if (existing?.topology?.isConnected()) return existing;
+  // Topology is closed or never opened — create a fresh client
+  return createAndConnect();
+}
 
-// connect to mongodb (for mongoose)
+// Live proxies: every property access always reads from the current active client.
+// When connectMongoClient() replaces globalForMongo.mongoClient after a reconnect,
+// auth.ts and all route handlers automatically use the new connection.
+export const client: MongoClient = new Proxy({} as MongoClient, {
+  get(_, prop) {
+    const c = globalForMongo.mongoClient;
+    if (!c) throw new Error("MongoDB not connected — call connectMongoClient() first");
+    const val = (c as any)[prop];
+    return typeof val === "function" ? val.bind(c) : val;
+  },
+});
+
+export const db: Db = new Proxy({} as Db, {
+  get(_, prop) {
+    const c = globalForMongo.mongoClient;
+    if (!c) throw new Error("MongoDB not connected — call connectMongoClient() first");
+    const dbInstance = c.db("grad-app");
+    const val = (dbInstance as any)[prop];
+    return typeof val === "function" ? val.bind(dbInstance) : val;
+  },
+});
+
+// Eagerly start connection on module load (non-blocking)
+if (process.env.NODE_ENV !== "test") {
+  createAndConnect().catch((e) => console.error("MongoDB initial connection error:", e));
+}
+
 export async function connectDB() {
-  if (mongoose.connection.readyState >= 1) {
-    return mongoose.connection;
-  }
-
+  if (mongoose.connection.readyState >= 1) return mongoose.connection;
   return mongoose.connect(MONGODB_URI);
 }
