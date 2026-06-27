@@ -17,16 +17,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
 export function AppSidebar() {
-  const {
-    state,
-    // open,
-    // setOpen,
-    // openMobile,
-    // setOpenMobile,
-    // isMobile,
-    // toggleSidebar,
-  } = useSidebar();
-
+  const { state } = useSidebar();
   const pathName = usePathname();
 
   return (
