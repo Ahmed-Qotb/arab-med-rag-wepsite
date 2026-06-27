@@ -87,21 +87,22 @@ export default function ChatList({ variant = "all" }: ChatListProps) {
             </p>
           </div>
 
-          {/* Save/unsave button */}
+          {/* Save/unsave button — disabled until the chat has at least one AI response */}
           <button
             type="button"
             className={cn(
               "mt-1 p-1.5 rounded-md text-neutral-500 hover:text-emerald-400 hover:bg-zinc-800/80 transition-colors",
               chat.saved && "text-emerald-400",
-              toggleSavedMutation.isPending &&
-                toggleSavedMutation.variables?.id === chat.id &&
-                "opacity-50"
+              (!chat.lastMessagePreview || (toggleSavedMutation.isPending &&
+                toggleSavedMutation.variables?.id === chat.id)) &&
+                "opacity-30 cursor-not-allowed hover:text-neutral-500 hover:bg-transparent"
             )}
             onClick={(e) => {
               e.stopPropagation();
+              if (!chat.lastMessagePreview) return;
               toggleSavedMutation.mutate(chat);
             }}
-            disabled={toggleSavedMutation.isPending}
+            disabled={toggleSavedMutation.isPending || !chat.lastMessagePreview}
             aria-label={chat.saved ? "إلغاء حفظ المحادثة" : "حفظ المحادثة"}
           >
             {toggleSavedMutation.isPending &&

@@ -13,6 +13,7 @@ type SignUpFormValues = {
   name: string;
   email: string;
   password: string;
+  confirmPassword: string;
 };
 
 export default function SignUpForm() {
@@ -23,12 +24,14 @@ export default function SignUpForm() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<SignUpFormValues>({
     defaultValues: {
       name: "",
       email: "",
       password: "",
+      confirmPassword: "",
     },
   });
 
@@ -109,12 +112,9 @@ export default function SignUpForm() {
 
       {/* PASSWORD FIELD */}
       <div className="space-y-2">
-        {/* PASSWORD LABEL */}
         <label className="block text-sm font-medium text-zinc-200">
           كلمة المرور
         </label>
-
-        {/* PASSWORD INPUT */}
         <Input
           type="password"
           placeholder="••••••••"
@@ -128,12 +128,29 @@ export default function SignUpForm() {
             },
           })}
         />
-
-        {/* PASSWORD ERROR */}
         {errors.password && (
-          <p className="text-xs text-red-400 mt-1">
-            {errors.password.message}
-          </p>
+          <p className="text-xs text-red-400 mt-1">{errors.password.message}</p>
+        )}
+      </div>
+
+      {/* CONFIRM PASSWORD FIELD */}
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-zinc-200">
+          تأكيد كلمة المرور
+        </label>
+        <Input
+          type="password"
+          placeholder="••••••••"
+          className="bg-[#4B4F5B] border-none placeholder:text-[#A0A7BB]"
+          aria-invalid={!!errors.confirmPassword}
+          {...register("confirmPassword", {
+            required: "يرجى تأكيد كلمة المرور",
+            validate: (value) =>
+              value === watch("password") || "كلمتا المرور غير متطابقتين",
+          })}
+        />
+        {errors.confirmPassword && (
+          <p className="text-xs text-red-400 mt-1">{errors.confirmPassword.message}</p>
         )}
       </div>
 
