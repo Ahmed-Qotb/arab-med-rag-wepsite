@@ -1,31 +1,25 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { CreateChatResponse } from "../_utils/side-chat-header.utils";
 
-/**
- * Mutation to create a new chat
- * Invalidates chat list and navigates to the new chat on success
- */
 export function useCreateChat(router: ReturnType<typeof import("next/navigation").useRouter>) {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<CreateChatResponse & { isExisting: boolean }> => {
       const res = await fetch("/api/chats", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({}),
       });
 
-      if (!res.ok) {
-        throw new Error("فشل في إنشاء المحادثة");
-      }
+      if (!res.ok) throw new Error("فشل في إنشاء المحادثة");
 
-      return res.json() as Promise<CreateChatResponse>;
+      return res.json();
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ["chats"] });
+      if (!data.isExisting) {
+        queryClient.invalidateQueries({ queryKey: ["chats"] });
+      }
       router.push(`/chat/${data.id}`);
     },
   });

@@ -14,8 +14,8 @@ export function SideChatHeader() {
 
       <ul className="flex gap-2.5">
         <li
-          className="flex justify-center items-center bg-teal-600 text-zinc-100 cursor-pointer transition-colors w-fit p-2 rounded-xl"
-          onClick={() => createChatMutation.mutate()}
+          className={`flex justify-center items-center bg-teal-600 text-zinc-100 transition-colors w-fit p-2 rounded-xl ${createChatMutation.isPending ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+          onClick={() => !createChatMutation.isPending && createChatMutation.mutate()}
         >
           <Plus strokeWidth="1.5" />
         </li>

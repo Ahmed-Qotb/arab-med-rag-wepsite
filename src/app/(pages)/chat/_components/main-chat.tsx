@@ -30,6 +30,8 @@ export default function MainChat({ chatId }: MainChatProps) {
   const [mode, setMode] = useState<ChatMode>("all");
   const [lastResponseExtra, setLastResponseExtra] = useState<LastResponseExtra | null>(null);
 
+  const previousMessagesRef = useRef<{ messages: ChatMessage[] } | undefined>(undefined);
+
   const { control, handleSubmit, reset } = useForm<FormValues>({
     defaultValues: { message: "" },
   });
@@ -75,9 +77,14 @@ export default function MainChat({ chatId }: MainChatProps) {
 
   useEffect(() => {
     if (sendMessageMutation.isError) {
+      if (previousMessagesRef.current !== undefined) {
+        queryClient.setQueryData(["chat-messages", chatId], previousMessagesRef.current);
+        previousMessagesRef.current = undefined;
+      }
+      queryClient.invalidateQueries({ queryKey: ["chats"] });
       toast.error("حدث خطأ. يرجى المحاولة مرة أخرى.");
     }
-  }, [sendMessageMutation.isError]);
+  }, [sendMessageMutation.isError, chatId, queryClient]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -88,8 +95,9 @@ export default function MainChat({ chatId }: MainChatProps) {
 
     const messageContent = values.message;
 
-    // Clear previous meta while new response is loading
     setLastResponseExtra(null);
+
+    previousMessagesRef.current = queryClient.getQueryData<{ messages: ChatMessage[] }>(["chat-messages", chatId]);
 
     const newMessage: ChatMessage = {
       id: crypto.randomUUID(),

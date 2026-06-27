@@ -12,8 +12,8 @@ export const auth = betterAuth({
   },
   session: {
     cookieCache: {
-      // Enables getSession in Next.js route handlers / server actions
       enabled: true,
+      maxAge: 60,
     },
   },
   plugins: [nextCookies()],

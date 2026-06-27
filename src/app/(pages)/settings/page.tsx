@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import {
   Dialog,
   DialogClose,
@@ -20,8 +21,13 @@ export default function SettingsPage() {
 
   async function handleSignOut() {
     setSigningOut(true);
-    await authClient.signOut();
-    router.push("/auth/signin");
+    try {
+      await authClient.signOut();
+      router.push("/auth/signin");
+    } catch {
+      toast.error("فشل تسجيل الخروج. يرجى المحاولة مرة أخرى.");
+      setSigningOut(false);
+    }
   }
 
   return (

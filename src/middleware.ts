@@ -9,6 +9,11 @@ const publicAuthPages = ["/auth/signin", "/auth/signup", "/auth/forget-password"
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Let Better Auth handle its own routes
+  if (pathname.startsWith("/api/auth")) {
+    return NextResponse.next();
+  }
+
   const session = await auth.api.getSession({
     headers: {
       cookie: request.headers.get("cookie") || "",
@@ -16,6 +21,15 @@ export async function middleware(request: NextRequest) {
   });
 
   const isAuthenticated = !!session?.user;
+
+  // API routes: return 401 JSON instead of redirecting
+  if (pathname.startsWith("/api/")) {
+    if (!isAuthenticated) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    return NextResponse.next();
+  }
+
   const isAuthPage = publicAuthPages.some((page) => pathname.startsWith(page));
 
   if (isAuthPage) {
@@ -35,5 +49,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next|.*\\..*).*)"],
+  matcher: ["/((?!_next|.*\\..*).*)"],
 };

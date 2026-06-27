@@ -45,19 +45,39 @@ export async function GET(request: Request) {
 /**
  * POST /api/chats
  * Create a new chat for the authenticated user.
- * Body: { title?: string, saved?: boolean }
+ * If an unsaved empty chat already exists, returns it instead of creating a duplicate.
  */
 export async function POST(request: Request) {
   try {
     const user = await requireAuth();
 
     const body = await request.json().catch(() => ({}));
-
-    const now = new Date();
-    const title: string = body.title || "محادثة جديدة";
     const saved: boolean = Boolean(body.saved);
 
     const chatsCollection = db.collection("chats");
+
+    // Return existing empty unsaved chat to prevent duplicates
+    if (!saved) {
+      const existingEmpty = await chatsCollection.findOne({
+        userId: user.id,
+        lastMessagePreview: null,
+        saved: false,
+      });
+
+      if (existingEmpty) {
+        return NextResponse.json({
+          id: existingEmpty._id.toString(),
+          title: existingEmpty.title ?? "محادثة جديدة",
+          lastMessagePreview: null,
+          updatedAt: existingEmpty.updatedAt?.toISOString?.() ?? new Date().toISOString(),
+          saved: false,
+          isExisting: true,
+        });
+      }
+    }
+
+    const now = new Date();
+    const title: string = body.title || "محادثة جديدة";
 
     const insertResult = await chatsCollection.insertOne({
       userId: user.id,
@@ -75,6 +95,7 @@ export async function POST(request: Request) {
         lastMessagePreview: null,
         updatedAt: now.toISOString(),
         saved,
+        isExisting: false,
       },
       { status: 201 }
     );
