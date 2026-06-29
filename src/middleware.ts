@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { auth } from "@/lib/auth";
+import { connectMongoClient } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -13,6 +14,8 @@ export async function middleware(request: NextRequest) {
   if (pathname.startsWith("/api/auth")) {
     return NextResponse.next();
   }
+
+  await connectMongoClient();
 
   const session = await auth.api.getSession({
     headers: {
