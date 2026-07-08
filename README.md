@@ -1,6 +1,7 @@
 # Arab Med RAG — Website
 
-An Arabic-first medical assistant chat application, built as the web frontend for a RAG-powered (Retrieval-Augmented Generation) medical chatbot.
+An Arabic-first medical assistant chat application, built as the web frontend for a RAG-powered (Retrieval-Augmented Generation) medical chatbot. 
+you can check the RAG-model here : https://github.com/MarwanAbdellah/ArabMedRAG
 
 🔗 **Live demo:** [arabic-medica-chatbot.vercel.app](https://arabic-medica-chatbot.vercel.app)
 
