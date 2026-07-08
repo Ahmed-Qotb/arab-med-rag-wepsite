@@ -16,10 +16,10 @@ This repository (`grad-app`) is a Next.js chat application that provides authent
 - **Language:** TypeScript (strict mode)
 - **Styling:** Tailwind CSS v4, [Radix UI](https://www.radix-ui.com) primitives, `class-variance-authority`
 - **Auth:** [better-auth](https://www.better-auth.com/)
-- **Database:** MongoDB / Mongoose
+- **Database:** MongoDB 
 - **Forms & validation:** react-hook-form + Zod
 - **Data fetching:** TanStack React Query
-- **Icons / UX:** lucide-react, sonner (toasts), next-themes (dark mode)
+- **Icons / UX:** lucide-react, sonner (toasts)
 
 ## Project Structure
 
